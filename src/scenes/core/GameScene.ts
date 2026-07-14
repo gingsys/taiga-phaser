@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { ILevel } from './interface/ILevel';
 import { level1 } from './levels/Level1';
+import { level2 } from './levels/Level2';
 
 // ========================== ASSETS ==========================
 // IMÁGENES
@@ -43,7 +44,7 @@ export class GameScene extends Phaser.Scene {
 
   init(){
     const levelId = this.registry.get('nivelActual') || 1;
-    this.currentLevelConfig = levelId === 1 ? level1: level1;
+    this.currentLevelConfig = levelId === 1 ? level1: level2;
 
     // --- RESETEO DE VALORES AL REINICIAR LA ESCENA ---
     this.tiempoRestante = 15;
@@ -320,8 +321,18 @@ export class GameScene extends Phaser.Scene {
     // Transición limpia
     this.cameras.main.fadeOut(1500, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.sound.get('bg_music').stop()
-      this.scene.start('MenuScene'); 
+      const nivelActual = this.registry.get('nivelActual') || 1;
+
+      if (nivelActual === 1) {
+        // Avanzamos al Nivel 2
+        this.registry.set('nivelActual', 2);
+        this.scene.restart(); // Reinicia GameScene, pero ahora el init() cargará level2
+      } else {
+        // ¡Se pasó todo el juego!
+        this.sound.get('bg_music').stop();
+        this.registry.set('nivelActual', 1);
+        this.scene.start('MenuScene'); // Aquí luego pondremos la VictoryScene final
+      }
     });
   }
 }
