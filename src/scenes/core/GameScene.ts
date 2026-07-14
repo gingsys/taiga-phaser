@@ -81,7 +81,7 @@ export class GameScene extends Phaser.Scene {
       frameHeight: 37 
     });
 
-    // ============== CARGA DE ASSETS ==============
+    // ========== CARGA DE ASSETS GLOBALES ==========
     // IMAGENES
     this.load.image('fondo_juego',FondoJuego)
     this.load.image('suelo_32', SueloAsset)
@@ -341,7 +341,7 @@ export class GameScene extends Phaser.Scene {
         // ¡Se pasó todo el juego!
         this.sound.get('bg_music').stop();
         this.registry.set('nivelActual', 1);
-        this.scene.start('MenuScene'); // Aquí luego pondremos la VictoryScene final
+        this.scene.start('VictoryScene'); // Aquí luego pondremos la VictoryScene final
       }
     });
   }

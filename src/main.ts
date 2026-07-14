@@ -6,6 +6,7 @@ import { MenuScene } from './scenes/MenuScene';
 import { GameScene } from './scenes/core/GameScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { StarScene } from './scenes/StartScene';
+import { VictoryScene } from './scenes/VictoryScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -24,7 +25,7 @@ const config: Phaser.Types.Core.GameConfig = {
     }
   },
   backgroundColor: '#18181b', // zinc-900  
-  scene: [StarScene, MenuScene, IntroScene, GameScene, GameOverScene]
+  scene: [StarScene, MenuScene, IntroScene, GameScene, GameOverScene, VictoryScene]
 };
 
 document.fonts.load('10pt "PressStart2P"').then(() => {
