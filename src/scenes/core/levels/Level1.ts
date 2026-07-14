@@ -159,7 +159,7 @@ export const level1: ILevel = {
     scene.physics.add.collider(grupoItems, piso)
   },
 
-  update: (scene, time, delta) => {
+  update: () => {
     // Lógica específica del nivel
     if (grupoVillanos) {
       grupoVillanos.getChildren().forEach((v) => {

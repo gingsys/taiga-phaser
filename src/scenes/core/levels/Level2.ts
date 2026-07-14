@@ -203,7 +203,7 @@ export const level2: ILevel = {
     });
   },
 
-  update: (scene, time, delta) => {
+  update: () => {
     if (grupoVillanos) {
       grupoVillanos.getChildren().forEach((v) => {
         v.update();
