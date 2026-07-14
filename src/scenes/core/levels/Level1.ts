@@ -1,8 +1,5 @@
 import Phaser from 'phaser';
 import type { ILevel } from '../interface/ILevel';
-import PlatIzquierda from '../../../assets/plat_izq.png'
-import PlatMedio from '../../../assets/plat_med.png'
-import PlatDerecha from '../../../assets/plat_der.png'
 import { Villano } from '../../../entities/Villano';
 
 let grupoVillanos: Phaser.Physics.Arcade.Group;
@@ -11,11 +8,7 @@ export const level1: ILevel = {
   reliquiasTotales: 0,
   reliquiasRecolectadas: 0,
   id: 1,
-  preload: (scene) => {
-    // Carga solo lo que el nivel 1 necesita
-    scene.load.image('plat_izq', PlatIzquierda);
-    scene.load.image('plat_med', PlatMedio);
-    scene.load.image('plat_der', PlatDerecha);
+  preload: () => {    
   },
 
   create: (scene, player, piedras, piso) => {
@@ -167,7 +160,7 @@ export const level1: ILevel = {
   },
 
   update: (scene, time, delta) => {
-    // Lógica específica del nivel (ej. mover plataformas móviles, spawnear lluvia, etc)
+    // Lógica específica del nivel
     if (grupoVillanos) {
       grupoVillanos.getChildren().forEach((v) => {
         v.update();

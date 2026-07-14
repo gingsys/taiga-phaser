@@ -10,6 +10,9 @@ import TaigaAtaque from '../../assets/taiga-ataque.png'
 import Villano from '../../assets/villano.png'
 import FondoJuego from '../../assets/fondo.jpg'
 import SueloAsset from '../../assets/suelo.png'
+import PlatIzquierda from '../../assets/plat_izq.png'
+import PlatMedio from '../../assets/plat_med.png'
+import PlatDerecha from '../../assets/plat_der.png'
 import Piedra from '../../assets/piedra.png'
 import Tumi from '../../assets/Tumi.png'
 import Naringera from '../../assets/naringera.png'
@@ -78,15 +81,22 @@ export class GameScene extends Phaser.Scene {
       frameHeight: 37 
     });
 
-
+    // ============== CARGA DE ASSETS ==============
+    // IMAGENES
     this.load.image('fondo_juego',FondoJuego)
     this.load.image('suelo_32', SueloAsset)
+    this.load.image('plat_izq', PlatIzquierda);
+    this.load.image('plat_med', PlatMedio);
+    this.load.image('plat_der', PlatDerecha);
     this.load.image('piedra', Piedra)
+
+    // SONIDO
     this.load.audio('bg_music', SoundBG)
     this.load.audio('jump_sound', JumpSound)
     this.load.audio('attack_sound', AttackSound)
     this.load.audio('hit_sound', HitSound)
     this.load.audio('pick_sound', PickSound)
+    // =============================================
 
     this.currentLevelConfig.preload(this);
   }

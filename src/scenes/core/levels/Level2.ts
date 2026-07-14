@@ -2,9 +2,7 @@
 import Phaser from 'phaser';
 import type { ILevel } from '../interface/ILevel';
 import { Villano } from '../../../entities/Villano';
-import PlatIzquierda from '../../../assets/plat_izq.png';
-import PlatMedio from '../../../assets/plat_med.png';
-import PlatDerecha from '../../../assets/plat_der.png';
+import ItemLlama from '../../../assets/llama.png'
 
 let grupoVillanos: Phaser.Physics.Arcade.Group;
 let proyectilesEnemigos: Phaser.Physics.Arcade.Group;
@@ -15,7 +13,11 @@ export const level2: ILevel = {
   reliquiasRecolectadas: 0,
   id: 2,
   
-  preload: () => {
+  preload: (scene) => {
+    scene.load.spritesheet('item_llama', ItemLlama, { 
+      frameWidth: 71, 
+      frameHeight: 91 
+    });
   },
 
   create: (scene, player, piedras, piso) => {
@@ -29,6 +31,13 @@ export const level2: ILevel = {
     grupoVillanos = scene.physics.add.group({
       classType: Villano,
       runChildUpdate: true
+    });
+
+    scene.anims.create({
+      key: 'llama_anim',
+      frames: scene.anims.generateFrameNumbers('item_llama', { start: 0, end: 3 }),
+      frameRate: 10,
+      repeat: -1
     });
 
     // --- FUNCIÓN DE CREACIÓN DE PLATAFORMAS (Igual que en Nivel 1) ---
@@ -82,7 +91,7 @@ export const level2: ILevel = {
             proyectil.setVelocityX(200 * direccion);
             
             // Si quieres que la piedra enemiga se vea distinta, puedes pintarla de rojo:
-            proyectil.setTint(0xffa500); 
+            proyectil.setTint(0xff0000); 
           }
         });
       },
@@ -104,7 +113,7 @@ export const level2: ILevel = {
       if (j.getData('golpeada')) return;
 
       j.setData('golpeada', true);
-      j.setTint(0xff0000); 
+      //j.setTint(0xff0000);
       
       // La empujamos hacia atrás dependiendo de dónde vino la piedra
       const empujeDir = j.x < (proyectil as Phaser.Physics.Arcade.Sprite).x ? -1 : 1;
@@ -125,7 +134,7 @@ export const level2: ILevel = {
       if (j.getData('golpeada')) return;
 
       j.setData('golpeada', true);
-      j.setTint(0xff0000); 
+      //j.setTint(0xff0000); 
       const empujeDir = j.x < v.x ? -1 : 1;
       j.setVelocity(300 * empujeDir, -250); 
       scene.time.delayedCall(400, () => { j.setData('golpeada', false); j.clearTint(); });
@@ -149,21 +158,27 @@ export const level2: ILevel = {
 
         if (eraJefe) {
           // Si era el jefe, soltamos el Ítem de la Victoria
-          const itemVictoria = grupoItems.create(posX, posY, 'tumi');
-          itemVictoria.anims.play('tumi_anim', true);
+          const itemVictoria = grupoItems.create(posX, posY, 'item_llama');
+          itemVictoria.setScale(0.5)
+          itemVictoria.anims.play('llama_anim', true);
           itemVictoria.setVelocityY(-150);
         } else {
           // Si era un enemigo normal, comprobamos si ya no quedan más
           if (grupoVillanos.countActive(true) === 0 && !jefeSpawneado) {
             jefeSpawneado = true;
-            
+            const { width } = scene.scale;
             // --- SPAWN DEL JEFE ---
             const jefe = new Villano({
-              scene, x: 400, y: 50, minX: 100, maxX: 700, velocidad: 120
+              scene,
+               x: 400,
+               y: 50, 
+               minX: 100, 
+               maxX: width - 60, 
+               velocidad: 120
             });
             jefe.setScale(2.5).setImmovable(true).setPushable(false);
             jefe.setTint(0xff0000); // Color rojo furioso
-            jefe.setData('hp', 3);  // Resistencia de 3 golpes
+            jefe.setData('hp', 6);  // Resistencia de 3 golpes
             jefe.setData('esJefe', true);
             grupoVillanos.add(jefe);
           }
