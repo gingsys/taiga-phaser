@@ -16,7 +16,7 @@ export class StarScene extends Phaser.Scene {
     const logo = this.add.image(width / 2, height / 2 - 50, 'logo_uni').setOrigin(0.5);
     logo.setScale(0.1)
     
-    this.add.text(width / 2, height / 2 + 50, 'DESARROLLADO POR:\n\nGiovanni Herrera\nLuis Quintana', {
+    this.add.text(width / 2, height / 2 + 50, 'DESARROLLADO POR:\n\nGiovanni Herrera\nLuis Quintana\nGilmar Chavez', {
       fontFamily: '"PressStart2P"',
       fontSize: '12px',
       color: '#ffffff',
