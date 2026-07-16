@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 // Importamos a Taiga y la reliquia principal para decorar
 import Taiga from '../assets/taiga.png';
 import Tumi from '../assets/Tumi.png';
+import { voiceControl } from '../systems/VoiceControl';
 
 export class VictoryScene extends Phaser.Scene {
   constructor() {
@@ -116,6 +117,12 @@ export class VictoryScene extends Phaser.Scene {
       // Reiniciamos el registro de niveles para que al jugar de nuevo, empiece en el Nivel 1
       this.registry.set('nivelActual', 1);
       this.scene.start('MenuScene');
+    });
+
+    // --- COMANDO DE VOZ ---
+    voiceControl.limpiarComandos();
+    voiceControl.registrarComando(['menu', 'volver'], () => {
+      menuBtn.emit('pointerdown');
     });
   }
 }

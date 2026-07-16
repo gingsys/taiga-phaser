@@ -29,7 +29,7 @@ export const level1: ILevel = {
       const anchoBloque = 32;
 
       plataformas.create(x, y, 'plat_izq').setOrigin(0, 0).refreshBody();
-      
+
       let xActual = x + anchoBloque;
       for (let i = 0; i < bloquesMedio; i++) {
         plataformas.create(xActual, y, 'plat_med').setOrigin(0, 0).refreshBody();
@@ -83,14 +83,23 @@ export const level1: ILevel = {
       }
     };
 
-    // DIBUJO DE PLATAFORMAS
-    crearPlataformaFlotante(0, 80, 7, 3);    
-    crearPlataformaFlotante(150, 225, 2, 1);
-    crearPlataformaFlotante(350, 150, 5, 1);
+    // DIBUJO DE PLATAFORMAS: alturas y anchos irregulares (evitando un patrón de zigzag
+    // predecible), con distancias horizontales distintas entre sí. Cada plataforma ocupa un
+    // rango de x propio (ninguna queda apilada justo encima de otra, así nunca bloquea el salto
+    // de la de abajo). El piso es continuo bajo todo el nivel, así que siempre hay ruta al suelo.
+    crearPlataformaFlotante(90, 260, 1, 1);
+    crearPlataformaFlotante(230, 190, 3, 1);
+    crearPlataformaFlotante(430, 230, 1, 1);
+    crearPlataformaFlotante(560, 120, 2, 1);
+    crearPlataformaFlotante(700, 160, 4, 2);
+    crearPlataformaFlotante(930, 80, 1, 1);
+    crearPlataformaFlotante(1060, 200, 2, 1);
+    crearPlataformaFlotante(1220, 140, 3, 1);
  
     // COLISIONES GLOBALES
     scene.physics.add.collider(grupoVillanos, plataformas);
     scene.physics.add.collider(grupoVillanos, piso)
+
     scene.physics.add.collider(player, plataformas);
 
     scene.physics.add.collider(player, grupoVillanos, (jugador, villano) => {

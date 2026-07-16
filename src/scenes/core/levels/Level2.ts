@@ -43,6 +43,7 @@ export const level2: ILevel = {
     // --- FUNCIÓN DE CREACIÓN DE PLATAFORMAS (Igual que en Nivel 1) ---
     const crearPlataformaFlotante = (x: number, y: number, bloquesMedio: number, cantidadVillanos: number = 0) => {
       const anchoBloque = 32;
+
       plataformas.create(x, y, 'plat_izq').setOrigin(0, 0).refreshBody();
       let xActual = x + anchoBloque;
       for (let i = 0; i < bloquesMedio; i++) {
@@ -72,9 +73,44 @@ export const level2: ILevel = {
       }
     };
 
-    // DISEÑO DEL NIVEL 2 (Más plataformas, más desafiante)
-    crearPlataformaFlotante(50, 220, 3, 2);
-    crearPlataformaFlotante(400, 120, 3, 2);
+    // DISEÑO DEL NIVEL 2: alturas y anchos irregulares (sin patrón de zigzag), cada plataforma
+    // con su propio rango de x (ninguna queda apilada encima de otra, así nunca bloquea el
+    // salto), y un arena abierta al final (x~850-1350) para la pelea contra el jefe.
+    crearPlataformaFlotante(90, 250, 1, 1);
+    crearPlataformaFlotante(220, 170, 2, 1);
+    crearPlataformaFlotante(400, 230, 1, 1);
+    crearPlataformaFlotante(530, 110, 3, 1);
+    crearPlataformaFlotante(740, 180, 2, 1);
+    crearPlataformaFlotante(910, 90, 3, 0); // plataforma decorativa del arena del jefe, sin villano
+
+    // --- CINEMÁTICA DE APARICIÓN DEL JEFE ---
+    // Congela la acción, sacude la pantalla y muestra un aviso antes de que el jefe entre en escena.
+    const iniciarAparicionJefe = () => {
+      const { width } = scene.scale;
+
+      scene.physics.pause();
+      scene.cameras.main.shake(1200, 0.015);
+
+      // El texto de aviso va fijo en pantalla (scrollFactor 0), no en coordenadas del mundo
+      const aviso = scene.add.text(width / 2, 70, '¡EL JEFE HA DESPERTADO!', {
+        fontFamily: '"PressStart2P"', fontSize: '12px', color: '#ff0000', stroke: '#000000', strokeThickness: 4
+      }).setOrigin(0.5).setDepth(20).setScrollFactor(0);
+
+      scene.time.delayedCall(1200, () => {
+        aviso.destroy();
+        scene.physics.resume();
+
+        // El jefe aparece en el arena final del nivel (x~980-1300), no en la pantalla inicial
+        const jefe = new Villano({ scene, x: 1100, y: 50, minX: 850, maxX: 1350, velocidad: 120 });
+        jefe.setImmovable(true).setPushable(false).setScale(0);
+        jefe.setTint(0xff0000); // Color rojo furioso
+        jefe.setData('hp', 12); // Resistencia de 12 golpes
+        jefe.setData('esJefe', true);
+        grupoVillanos.add(jefe);
+
+        scene.tweens.add({ targets: jefe, scale: 2.5, duration: 400, ease: 'Back.Out' });
+      });
+    };
 
     // --- LÓGICA DE DISPARO ENEMIGO ---
     scene.time.addEvent({
@@ -101,7 +137,9 @@ export const level2: ILevel = {
     // --- COLISIONES GLOBALES ---
     scene.physics.add.collider(grupoVillanos, plataformas);
     scene.physics.add.collider(grupoVillanos, piso);
+
     scene.physics.add.collider(player, plataformas);
+
     scene.physics.add.collider(grupoItems, plataformas);
     scene.physics.add.collider(grupoItems, piso);
 
@@ -127,24 +165,61 @@ export const level2: ILevel = {
       });
     });
 
-    // --- TAIGA VS VILLANOS (Igual que en Nivel 1) ---
+    // --- TAIGA VS VILLANOS (Igual que en Nivel 1, pero el jefe empuja más fuerte) ---
     scene.physics.add.collider(player, grupoVillanos, (jugador, villano) => {
       const j = jugador as Phaser.Physics.Arcade.Sprite;
       const v = villano as Phaser.Physics.Arcade.Sprite;
       if (j.getData('golpeada')) return;
 
       j.setData('golpeada', true);
-      //j.setTint(0xff0000); 
+      //j.setTint(0xff0000);
       const empujeDir = j.x < v.x ? -1 : 1;
-      j.setVelocity(300 * empujeDir, -250); 
+      const esJefe = v.getData('esJefe');
+      j.setVelocity(esJefe ? 500 * empujeDir : 300 * empujeDir, esJefe ? -400 : -250);
       scene.time.delayedCall(400, () => { j.setData('golpeada', false); j.clearTint(); });
     });
 
+    // El jefe contraataca lanzando una piedra propia hacia el jugador, con una pequeña
+    // demora para que se sienta como una reacción (no instantánea/injusta).
+    const jefeContraataca = (jefe: Phaser.Physics.Arcade.Sprite) => {
+      scene.time.delayedCall(150, () => {
+        if (!jefe.active) return;
+        const direccion = player.x < jefe.x ? -1 : 1;
+        const proyectil = proyectilesEnemigos.create(jefe.x, jefe.y, 'piedra');
+        proyectil.body.setAllowGravity(false);
+        proyectil.setVelocityX(220 * direccion);
+        proyectil.setTint(0xff0000);
+      });
+    };
+
     // --- COMBATE: PIEDRAS VS VILLANOS Y SPAWN DEL JEFE ---
-    scene.physics.add.overlap(piedras, grupoVillanos, (piedra, villano) => {      
+    scene.physics.add.overlap(piedras, grupoVillanos, (piedra, villano) => {
       const v = villano as Phaser.Physics.Arcade.Sprite;
+
+      // Dificultad media para el jefe: a veces esquiva el golpe, a veces rebota la piedra
+      // devuelta como su propio ataque, y en un golpe normal siempre contraataca rápido.
+      // No es invencible: la mayoría de las veces igual recibe el daño.
+      if (v.getData('esJefe')) {
+        const suerte = Math.random();
+
+        if (suerte < 0.15) {
+          // Rebote: la piedra del jugador se convierte en un contraataque inmediato
+          piedra.destroy();
+          jefeContraataca(v);
+          return;
+        }
+
+        if (suerte < 0.4) {
+          // Esquiva: salta para evitar el golpe y no recibe daño, pero contraataca igual
+          piedra.destroy();
+          v.setVelocityY(-300);
+          jefeContraataca(v);
+          return;
+        }
+      }
+
       piedra.destroy();
-      scene.sound.play('hit_sound', {volume: 0.5});      
+      scene.sound.play('hit_sound', {volume: 0.5});
 
       // Restamos vida
       let hp = v.getData('hp') - 1;
@@ -166,27 +241,14 @@ export const level2: ILevel = {
           // Si era un enemigo normal, comprobamos si ya no quedan más
           if (grupoVillanos.countActive(true) === 0 && !jefeSpawneado) {
             jefeSpawneado = true;
-            const { width } = scene.scale;
-            // --- SPAWN DEL JEFE ---
-            const jefe = new Villano({
-              scene,
-               x: 400,
-               y: 50, 
-               minX: 100, 
-               maxX: width - 60, 
-               velocidad: 120
-            });
-            jefe.setScale(2.5).setImmovable(true).setPushable(false);
-            jefe.setTint(0xff0000); // Color rojo furioso
-            jefe.setData('hp', 6);  // Resistencia de 3 golpes
-            jefe.setData('esJefe', true);
-            grupoVillanos.add(jefe);
+            iniciarAparicionJefe();
           }
         }
       } else {
         // Efecto visual de que el jefe recibió daño pero no murió
         v.setTint(0xffffff);
         scene.time.delayedCall(100, () => v.setTint(0xff0000));
+        if (v.getData('esJefe')) jefeContraataca(v);
       }
     });
 

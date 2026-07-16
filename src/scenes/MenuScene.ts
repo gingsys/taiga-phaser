@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import Taiga from '../assets/taiga.png';
 import FondoJuego from '../assets/fondo.jpg';
 import MenuSound from '../assets/menu-bg.mp3'
+import { voiceControl } from '../systems/VoiceControl';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -117,7 +118,7 @@ export class MenuScene extends Phaser.Scene {
     startButton.on('pointerdown', () => {
       // (Opcional) Puedes agregar un sonido de "Start" aquí antes de cambiar de escena
       this.sound.get('menu_sound').stop()
-      this.scene.start('IntroScene');
+      this.scene.start('ComandosScene');
     });
 
     startButton.on('pointerover', () => {
@@ -130,6 +131,12 @@ export class MenuScene extends Phaser.Scene {
       startButton.setColor('#34d399');
       startButton.setScale(1); // Reseteamos escala
       latidoTween.resume();    // Retomamos el latido
+    });
+
+    // --- COMANDO DE VOZ ---
+    voiceControl.limpiarComandos();
+    voiceControl.registrarComando(['empezar', 'iniciar', 'comenzar', 'jugar'], () => {
+      startButton.emit('pointerdown');
     });
   }
 }

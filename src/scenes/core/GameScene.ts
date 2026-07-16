@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { ILevel } from './interface/ILevel';
 import { level1 } from './levels/Level1';
 import { level2 } from './levels/Level2';
+import { voiceControl } from '../../systems/VoiceControl';
 
 // ========================== ASSETS ==========================
 // IMÁGENES
@@ -36,10 +37,18 @@ export class GameScene extends Phaser.Scene {
   private atacando: boolean = false;
   private mirandoDerecha: boolean = true;
 
-  private tiempoRestante: number = 15; // 60 segundos
+  private direccionVoz: 'izquierda' | 'derecha' | 'ninguna' = 'ninguna';
+  private saltoVoz: boolean = false;
+  private ataqueVoz: boolean = false;
+
+  private tiempoRestante: number = 30; // 30 segundos por nivel
   private textoTiempo!: Phaser.GameObjects.Text;
   private textoReliquias!: Phaser.GameObjects.Text;
   private temporizadorEvento!: Phaser.Time.TimerEvent;
+
+  // Ancho del mundo del nivel (más grande que la pantalla): la cámara sigue a Taiga
+  // y las plataformas/villanos se reparten a lo largo de este ancho en vez de amontonarse.
+  private readonly anchoMundo = 1400;
 
   constructor() {
     super('GameScene');
@@ -50,9 +59,12 @@ export class GameScene extends Phaser.Scene {
     this.currentLevelConfig = levelId === 1 ? level1: level2;
 
     // --- RESETEO DE VALORES AL REINICIAR LA ESCENA ---
-    this.tiempoRestante = 15;
+    this.tiempoRestante = 30;
     this.atacando = false;
     this.mirandoDerecha = true;
+    this.direccionVoz = 'ninguna';
+    this.saltoVoz = false;
+    this.ataqueVoz = false;
   }
 
   preload(){
@@ -104,8 +116,14 @@ export class GameScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
 
+    // El mundo/nivel es más ancho que la pantalla; la cámara sigue al jugador (ver más abajo).
+    this.physics.world.setBounds(0, 0, this.anchoMundo, height);
+    this.cameras.main.setBounds(0, 0, this.anchoMundo, height);
+
+    // El fondo queda fijo respecto a la cámara (no se desplaza), como un cielo de fondo simple.
     const fondo = this.add.image(width/2, height/2,'fondo_juego')
     fondo.setDepth(-1)
+    fondo.setScrollFactor(0)
 
     // --- SISTEMA DE MÚSICA DE FONDO ---
     // Comprobamos si el motor de audio ya tiene registrada esta canción.
@@ -126,11 +144,11 @@ export class GameScene extends Phaser.Scene {
     // --- TEXTOS DEL HUD EN PANTALLA ---
     this.textoTiempo = this.add.text(16, 5, `TIEMPO: ${this.tiempoRestante}`, {
       fontFamily: '"PressStart2P"', fontSize: '14px', color: '#ef4444', stroke: '#000000', strokeThickness: 4
-    }).setDepth(10); // Aseguramos que se dibuje por encima de todo
+    }).setDepth(10).setScrollFactor(0); // Fijo en pantalla aunque la cámara se mueva
 
     this.textoReliquias = this.add.text(width - 220, 5, `RELIQUIAS: 0/0`, {
       fontFamily: '"PressStart2P"', fontSize: '14px', color: '#fbbf24', stroke: '#000000', strokeThickness: 4
-    }).setDepth(10);
+    }).setDepth(10).setScrollFactor(0);
 
     // --- TEMPORIZADOR ---
     this.temporizadorEvento = this.time.addEvent({
@@ -140,7 +158,7 @@ export class GameScene extends Phaser.Scene {
       loop: true
     });
 
-    this.piso = this.add.tileSprite(0, 335, width, 32, 'suelo_32').setOrigin(0, 0);
+    this.piso = this.add.tileSprite(0, 335, this.anchoMundo, 32, 'suelo_32').setOrigin(0, 0);
     this.physics.add.existing(this.piso, true);
     
     // this.input.on('pointerdown', () => {
@@ -150,12 +168,22 @@ export class GameScene extends Phaser.Scene {
     this.teclas = this.input.keyboard!.createCursorKeys();
     this.teclaAtaque = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D);
 
+    // --- COMANDOS DE VOZ ---
+    voiceControl.limpiarComandos();
+    voiceControl.registrarComando(['izquierda'], () => { this.direccionVoz = 'izquierda'; });
+    voiceControl.registrarComando(['derecha'], () => { this.direccionVoz = 'derecha'; });
+    voiceControl.registrarComando(['detente', 'quieto', 'para', 'alto'], () => { this.direccionVoz = 'ninguna'; });
+    voiceControl.registrarComando(['salta', 'saltar', 'salto'], () => { this.saltoVoz = true; });
+    voiceControl.registrarComando(['ataca', 'atacar', 'ataque', 'lanza', 'lanzar', 'piedra'], () => { this.ataqueVoz = true; });
+
     this.jugador = this.physics.add.sprite(0,307,'taiga');
     this.jugador.body.setSize(30, 50);
     this.jugador.body.setOffset(17, 14);
     this.jugador.setCollideWorldBounds(true);
     this.physics.add.collider(this.jugador, this.piso);
-    
+
+    this.cameras.main.startFollow(this.jugador, true, 0.08, 0.08);
+
 
     this.anims.create({
       key: 'jugador_derecha',
@@ -250,7 +278,10 @@ export class GameScene extends Phaser.Scene {
       return; // El 'return' hace que el código de abajo (teclas) no se ejecute en este frame
     }
     
-    if (Phaser.Input.Keyboard.JustDown(this.teclaAtaque) && !this.atacando) {
+    const pidieronAtaque = Phaser.Input.Keyboard.JustDown(this.teclaAtaque) || this.ataqueVoz;
+    this.ataqueVoz = false;
+
+    if (pidieronAtaque && !this.atacando) {
       this.atacando = true;
       if (this.mirandoDerecha) {
         this.jugador.anims.play('ataque_derecha', true);
@@ -259,13 +290,16 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    if (this.teclas.right.isDown) {
+    const derechaActiva = this.teclas.right.isDown || this.direccionVoz === 'derecha';
+    const izquierdaActiva = this.teclas.left.isDown || this.direccionVoz === 'izquierda';
+
+    if (derechaActiva) {
       this.jugador.setVelocityX(160)
       this.mirandoDerecha = true;
       if (!this.atacando) {
         this.jugador.anims.play('jugador_derecha', true);
       }
-    }else if (this.teclas.left.isDown) {
+    }else if (izquierdaActiva) {
       this.jugador.setVelocityX(-160)
       this.mirandoDerecha = false;
       if (!this.atacando) {
@@ -279,12 +313,15 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    const enElSuelo = this.jugador.body.blocked.down || this.jugador.body.touching.down;    
+    const enElSuelo = this.jugador.body.blocked.down || this.jugador.body.touching.down;
 
     // SALTO
-    if (Phaser.Input.Keyboard.JustDown(this.teclas.space) && enElSuelo) {
+    const pidieronSalto = Phaser.Input.Keyboard.JustDown(this.teclas.space) || this.saltoVoz;
+    this.saltoVoz = false;
+
+    if (pidieronSalto && enElSuelo) {
       this.jugador.setVelocityY(-550);
-      this.sound.play('jump_sound', {volume: 0.5})  
+      this.sound.play('jump_sound', {volume: 0.5})
     }
 
     // SALTO VARIABLE

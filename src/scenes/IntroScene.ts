@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import Taiga from '../assets/taiga.png';
 import FondoJuego from '../assets/fondo.jpg';
 import IntroSound from '../assets/intro-bg.mp3'
+import { voiceControl } from '../systems/VoiceControl';
 
 export class IntroScene extends Phaser.Scene {
   private textosHistoria: string[] = [
@@ -102,6 +103,14 @@ export class IntroScene extends Phaser.Scene {
     // Registrar inputs para avanzar en la historia
     this.input.keyboard!.on('keydown-SPACE', () => this.avanzarHistoria());
     this.input.on('pointerdown', () => this.avanzarHistoria());
+
+    // --- COMANDOS DE VOZ ---
+    voiceControl.limpiarComandos();
+    voiceControl.registrarComando(['continuar', 'siguiente', 'avanzar'], () => this.avanzarHistoria());
+    voiceControl.registrarComando(
+      ['saltar presentacion', 'saltar la presentacion', 'saltar intro', 'saltar introduccion'],
+      () => this.iniciarJuego()
+    );
 
     // Comenzar a escribir el primer bloque de texto
     this.mostrarSiguienteTexto();

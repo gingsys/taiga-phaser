@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { voiceControl } from '../systems/VoiceControl';
 
 export class GameOverScene extends Phaser.Scene {
   private recolectadas: number = 0;
@@ -94,6 +95,15 @@ export class GameOverScene extends Phaser.Scene {
     });
     menuBtn.on('pointerdown', () => {
       this.scene.start('MenuScene');
+    });
+
+    // --- COMANDOS DE VOZ ---
+    voiceControl.limpiarComandos();
+    voiceControl.registrarComando(['reintentar', 'reiniciar', 'otra vez'], () => {
+      restartBtn.emit('pointerdown');
+    });
+    voiceControl.registrarComando(['menu', 'salir'], () => {
+      menuBtn.emit('pointerdown');
     });
   }
 }
